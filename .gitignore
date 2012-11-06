@@ -1,0 +1,9 @@
+*.log
+*.ld
+*.map
+*.o
+*.d
+*.a
+*.map
+*.axf
+
