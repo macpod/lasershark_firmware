@@ -1,0 +1,9 @@
+SWDSelect
+
+# This line is important if you want flash to work at all.
+Device LPC1343
+h
+loadbin lasershark.bin 0x0
+r
+g
+q
