@@ -51,7 +51,33 @@ along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
 // Get max dac value
 #define LASERSHARK_CMD_GET_DAC_MAX 0x88
 
+// Get min dac value
+#define LASERSHARK_CMD_GET_DAC_MIN 0x87
+// Get max dac value
+#define LASERSHARK_CMD_GET_DAC_MAX 0x88
 
+
+
+
+#define LASERSHARK_X_DAC_REG DAC124S085_INPUT_REG_C
+#define LASERSHARK_Y_DAC_REG DAC124S085_INPUT_REG_D
+#define LASERSHARK_A_DAC_REG DAC124S085_INPUT_REG_A
+#define LASERSHARK_B_DAC_REG DAC124S085_INPUT_REG_B
+
+#define LASERSHARK_C_PORT 1
+#define LASERSHARK_C_PIN 1
+#define LASERSHARK_C_BITMASK 0x4000
+
+#define LASERSHARK_INTL_A_PORT 1
+#define LASERSHARK_INTL_A_PIN 2
+#define LASERSHARK_INTL_A_BITMASK 0x8000
+
+#define LASERSHARK_INTL_B_PORT 1
+#define LASERSHARK_INTL_B_PIN 0
+
+
+#define LASERSHARK_PGM_BUTTON_PORT 0
+#define LASERSHARK_PGM_BUTTON_PIN 1
 
 #define LASERSHARK_USB_CTRL_SIZE 64
 #define LASERSHARK_USB_DATA_SIZE 512
@@ -67,6 +93,7 @@ int32_t lasershark_usb_data_packet_samp_count;
 #define LASERSHARK_ILDA_CHANNELS 4
 volatile uint16_t lasershark_ringbuffer[LASERSHARK_RINGBUFFER_SAMPLES][LASERSHARK_ILDA_CHANNELS];
 volatile uint16_t lasershark_blankingbuffer[LASERSHARK_ILDA_CHANNELS];
+
 uint32_t lasershark_ringbuffer_head;
 uint32_t lasershark_ringbuffer_tail;
 

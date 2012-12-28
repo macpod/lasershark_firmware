@@ -1,22 +1,22 @@
 /*
-main.c - Lasershark firmware.
-Copyright (C) 2012 Jeffrey Nelson <nelsonjm@macpod.net>
+ main.c - Lasershark firmware.
+ Copyright (C) 2012 Jeffrey Nelson <nelsonjm@macpod.net>
 
-This file is part of Lasershark's Firmware.
+ This file is part of Lasershark's Firmware.
 
-Lasershark is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 2 of the License, or
-(at your option) any later version.
+ Lasershark is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 2 of the License, or
+ (at your option) any later version.
 
-Lasershark is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
+ Lasershark is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
-*/
+ You should have received a copy of the GNU General Public License
+ along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifdef __USE_CMSIS
 #include "LPC13xx.h"
@@ -39,7 +39,7 @@ along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
 // See crp.h header for more information
 __CRP const unsigned int CRP_WORD = CRP_NO_CRP;
 
-// Turn this off if you are debugging.
+// Set this to zero if you are debugging.
 #define WATCHDOG_ENABLED 1
 
 #define WDEN (0x1<<0)
@@ -85,6 +85,17 @@ int main(void) {
 
 	/* Initialize GPIO (sets up clock) */
 	GPIOInit();
+
+	/* Set pin C, INTL A and INTL B function and state ASAP!
+	 * If pin C and INTL A are set as inputs, it will cause the amplifiers to output > 10v
+	 * which is NOT GOOD! There is no real way to avoid this issue unfortunately other than
+	 * to insist the board is not connected when being programmed.
+	 */
+	/* Make pin functions digital IOs, pulldowns enabled, ADMODE=digital. */
+	LPC_IOCON->R_PIO1_1 = (1 << 0) | (0x1 << 3) | (1 << 7); // C
+	LPC_IOCON->R_PIO1_2 = (1 << 0) | (0x1 << 3) | (1 << 7); // INTL A
+	LPC_IOCON->R_PIO1_0 = (1 << 0) | (0x1 << 3) | (1 << 7); // INTL B
+
 	/* Set LED port pin to output */
 	GPIOSetDir(LED_PORT, USR1_LED_BIT, 1);
 	GPIOSetDir(LED_PORT, USR2_LED_BIT, 1);
@@ -92,6 +103,7 @@ int main(void) {
 	/* Enable IOCON blocks for io pin multiplexing.*/
 	LPC_SYSCON->SYSAHBCLKCTRL |= (1 << 16);
 
+	// Set initial state of lasershark ASAP!
 	lasershark_init();
 
 	USBIOClkConfig();

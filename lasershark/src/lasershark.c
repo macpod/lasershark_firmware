@@ -1,22 +1,22 @@
 /*
-lasershark.c - Lasershark firmware.
-Copyright (C) 2012 Jeffrey Nelson <nelsonjm@macpod.net>
+ lasershark.c - Lasershark firmware.
+ Copyright (C) 2012 Jeffrey Nelson <nelsonjm@macpod.net>
 
-This file is part of Lasershark's Firmware.
+ This file is part of Lasershark's Firmware.
 
-Lasershark is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 2 of the License, or
-(at your option) any later version.
+ Lasershark is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 2 of the License, or
+ (at your option) any later version.
 
-Lasershark is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
+ Lasershark is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
-*/
+ You should have received a copy of the GNU General Public License
+ along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include <string.h>
 #include "lasershark.h"
@@ -27,11 +27,36 @@ along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
 #include "usbreg.h"
 #include "dac124s085.h"
 
+static __INLINE void lasershark_set_interlock_a(bool val)
+{
+	GPIOSetValue(LASERSHARK_INTL_A_PORT, LASERSHARK_INTL_A_PIN, val);
+}
+
+static __INLINE bool lasershark_get_interlock_b()
+{
+	return GPIOGetValue(LASERSHARK_INTL_B_PORT, LASERSHARK_INTL_B_PIN);
+}
+
+static __INLINE void lasershark_set_c(bool val)
+{
+	GPIOSetValue(LASERSHARK_C_PORT, LASERSHARK_C_PIN, val);
+}
+
 void lasershark_init() {
 	int i, j = j;
 	lasershark_output_enabled = false;
 	lasershark_ringbuffer_head = 0;
 	lasershark_ringbuffer_tail = 0;
+
+	// Set lasershark pins to be inputs/outputs as appropriate ASAP!
+	GPIOSetDir(LASERSHARK_C_PORT, LASERSHARK_C_PIN, 1); // Output
+	GPIOSetDir(LASERSHARK_INTL_A_PORT, LASERSHARK_INTL_A_PIN, 1); // Output
+	GPIOSetDir(LASERSHARK_INTL_B_PORT, LASERSHARK_INTL_B_PIN, 0); // Input
+	GPIOSetValue(LASERSHARK_C_PORT, LASERSHARK_C_PIN, 0);
+
+	// Unlike the DAC output, these are not pulled down at start so we need to pull down these pins ASAP!
+	lasershark_set_interlock_a(0);
+	lasershark_set_c(0);
 
 	lasershark_usb_data_packet_size = LASERSHARK_USB_DATA_SIZE
 			- (LASERSHARK_USB_DATA_SIZE % (LASERSHARK_ILDA_CHANNELS
@@ -40,27 +65,115 @@ void lasershark_init() {
 			/ (LASERSHARK_ILDA_CHANNELS * sizeof(uint16_t));
 
 	SSPInit();
-	init_timer32(1, lasershark_core_duration);
-	lasershark_set_ilda_rate(LASERSHARK_ILDA_RATE_DEFAULT);
-	enable_timer32(1);
 
 	lasershark_ilda_rate_max = LASERSHARK_USB_SOF_RATE
 			* lasershark_usb_data_packet_samp_count;
 
 	// This is buffer sent when the system is off
-	lasershark_blankingbuffer[0] = DAC124S085_DAC_VAL_MID; // X
-	lasershark_blankingbuffer[1] = DAC124S085_DAC_VAL_MID; // Y
-	for (j = 2; j < LASERSHARK_ILDA_CHANNELS; j++) { // All dem lasers
-		lasershark_blankingbuffer[j] = DAC124S085_DAC_VAL_MIN;
-	}
+	lasershark_blankingbuffer[0] = DAC124S085_DAC_VAL_MIN; // A
+	lasershark_blankingbuffer[1] = DAC124S085_DAC_VAL_MIN; // B
+	lasershark_blankingbuffer[2] = DAC124S085_INPUT_REG_DATA_MASK
+			& DAC124S085_DAC_VAL_MID; // INTL_A, C, X
+	lasershark_blankingbuffer[3] = DAC124S085_DAC_VAL_MID; // Y
 
 	for (i = 0; i < LASERSHARK_RINGBUFFER_SAMPLES; i++) {
-		lasershark_ringbuffer[i][0] = DAC124S085_DAC_VAL_MID; // X
-		lasershark_ringbuffer[i][1] = DAC124S085_DAC_VAL_MID; // Y
-		for (j = 2; j < LASERSHARK_ILDA_CHANNELS; j++) { // All dem lasers
-			lasershark_ringbuffer[i][j] = DAC124S085_DAC_VAL_MIN;
+		lasershark_ringbuffer[i][0] = DAC124S085_DAC_VAL_MIN; // A
+		lasershark_ringbuffer[i][1] = DAC124S085_DAC_VAL_MIN; // B
+		lasershark_ringbuffer[i][2] = DAC124S085_INPUT_REG_DATA_MASK
+				& DAC124S085_DAC_VAL_MID; // INTL_A, C, X
+		lasershark_ringbuffer[i][3] = DAC124S085_DAC_VAL_MID; // Y
+	}
+
+	// dummy code to blink LEDS.. woo
+#if (0)
+
+	while (1) {
+		// Poor mans debounce
+		GPIOToggleValue(LED_PORT, USR2_LED_BIT);
+		GPIOToggleValue(LED_PORT, USR1_LED_BIT);
+
+		for (i = 0; i < 10000000; i++) {
+			asm("nop");
 		}
 	}
+#endif
+
+	// Really awful code block used to calibrate X and Y pots
+#if (0)
+
+	GPIOSetDir(LASERSHARK_PGM_BUTTON_PORT, LASERSHARK_PGM_BUTTON_PIN, 0); // Input
+
+	while (1) {
+		lasershark_blankingbuffer[0] = DAC124S085_DAC_VAL_MAX; // A
+		lasershark_blankingbuffer[1] = DAC124S085_DAC_VAL_MAX; // B
+		lasershark_blankingbuffer[2] = LASERSHARK_INTL_A_BITMASK
+		| LASERSHARK_C_BITMASK | (DAC124S085_INPUT_REG_DATA_MASK
+				& DAC124S085_DAC_VAL_MAX); // INTL_A, C, X
+		lasershark_blankingbuffer[3] = DAC124S085_DAC_VAL_MAX; // Y
+		lasershark_set_interlock_a(true);
+		dac124s085_dac(lasershark_blankingbuffer);
+		lasershark_set_c(true);
+		GPIOToggleValue(LED_PORT, USR2_LED_BIT);
+
+		while (GPIOGetValue(LASERSHARK_PGM_BUTTON_PORT,
+						LASERSHARK_PGM_BUTTON_PIN)) {
+			asm("nop");
+		}
+
+		// Poor mans debounce
+		for (i = 0; i < 10000000; i++) {
+			asm("nop");
+		}
+
+		lasershark_blankingbuffer[0] = DAC124S085_DAC_VAL_MID; // A
+		lasershark_blankingbuffer[1] = DAC124S085_DAC_VAL_MID; // B
+		lasershark_blankingbuffer[2] = DAC124S085_INPUT_REG_DATA_MASK
+		& DAC124S085_DAC_VAL_MID; // INTL_A, C, X
+		lasershark_blankingbuffer[3] = DAC124S085_DAC_VAL_MID; // Y
+		lasershark_set_interlock_a(false);
+		dac124s085_dac(lasershark_blankingbuffer);
+		lasershark_set_c(false);
+		GPIOToggleValue(LED_PORT, USR2_LED_BIT);
+
+		while (GPIOGetValue(LASERSHARK_PGM_BUTTON_PORT,
+						LASERSHARK_PGM_BUTTON_PIN)) {
+			asm("nop");
+		}
+
+		// Poor mans debounce
+		for (i = 0; i < 10000000; i++) {
+			asm("nop");
+		}
+
+		lasershark_blankingbuffer[0] = DAC124S085_DAC_VAL_MIN; // A
+		lasershark_blankingbuffer[1] = DAC124S085_DAC_VAL_MIN; // B
+		lasershark_blankingbuffer[2] = DAC124S085_INPUT_REG_DATA_MASK
+		& DAC124S085_DAC_VAL_MIN; // INTL_A, C, X
+		lasershark_blankingbuffer[3] = DAC124S085_DAC_VAL_MIN; // Y
+		lasershark_set_interlock_a(false);
+		dac124s085_dac(lasershark_blankingbuffer);
+		lasershark_set_c(false);
+		GPIOToggleValue(LED_PORT, USR2_LED_BIT);
+
+		while (GPIOGetValue(LASERSHARK_PGM_BUTTON_PORT,
+						LASERSHARK_PGM_BUTTON_PIN)) {
+			asm("nop");
+		}
+
+		// Poor mans debounce
+		for (i = 0; i < 10000000; i++) {
+			asm("nop");
+		}
+
+	}
+#endif
+
+	TIMER32_1_IRQHandler(); // The output is disabled, so the blank buffer will be sent.
+
+	init_timer32(1, lasershark_core_duration);
+	lasershark_set_ilda_rate(LASERSHARK_ILDA_RATE_DEFAULT);
+	enable_timer32(1);
+
 }
 
 void lasershark_process_command() {
@@ -162,22 +275,33 @@ __inline void lasershark_process_data(uint32_t cnt) {
 void TIMER32_1_IRQHandler(void) {
 	LPC_TMR32B1->IR = 1; /* clear interrupt flag */
 
-	if (!lasershark_output_enabled) {
+	if (!lasershark_output_enabled /*|| !lasershark_get_interlock_b()*/) {
+		lasershark_set_interlock_a(false);
 		dac124s085_dac(lasershark_blankingbuffer);
+		lasershark_set_c(false);
 		return;
 	}
 
 	// If the head and tail are the same, don't play the sample, it can make the galvos/lasers lose sanity.
 	// This also has the desirable side effect of turning off the laser once all the buffer samples are used up (i.e. in the even USB comms stop).
 	if (lasershark_ringbuffer_head == lasershark_ringbuffer_tail) {
-		dac124s085_dac_chn_set(DAC124S085_INPUT_REG_C, DAC124S085_DAC_VAL_MIN,
+		lasershark_set_interlock_a(false);
+		dac124s085_dac_chn_set(LASERSHARK_A_DAC_REG, DAC124S085_DAC_VAL_MIN,
 				false);
-		dac124s085_dac_chn_set(DAC124S085_INPUT_REG_D, DAC124S085_DAC_VAL_MIN,
+		dac124s085_dac_chn_set(LASERSHARK_B_DAC_REG, DAC124S085_DAC_VAL_MIN,
 				true);
+		lasershark_set_c(false);
+
 		return;
 	}
 
+	lasershark_set_interlock_a(
+			lasershark_ringbuffer[lasershark_ringbuffer_head][0]
+					& LASERSHARK_INTL_A_BITMASK);
 	dac124s085_dac(lasershark_ringbuffer[lasershark_ringbuffer_head]);
+	lasershark_set_c(
+			lasershark_ringbuffer[lasershark_ringbuffer_head][0]
+					& LASERSHARK_C_BITMASK);
 
 	lasershark_ringbuffer_head = (lasershark_ringbuffer_head + 1)
 			% LASERSHARK_RINGBUFFER_SAMPLES;
