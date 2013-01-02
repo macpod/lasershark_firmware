@@ -31,6 +31,7 @@
 #include "usbcfg.h"
 #include "usbhw.h"
 #include "usbcore.h"
+#include "usbdesc.h"
 #include "type.h"
 #include "lasershark.h"
 
@@ -108,6 +109,7 @@ int main(void) {
 
 	USBIOClkConfig();
 
+	usb_populate_serialno(); // Populate the devices serial number
 	USB_Init(); // USB Initialization
 	USB_Connect(TRUE); // USB Connect
 

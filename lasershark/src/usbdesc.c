@@ -24,7 +24,7 @@ along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
 #include "usbdesc.h"
 #include "config.h"
 #include "lasershark.h"
-
+#include "iap.h"
  
 /* USB Standard Device Descriptor */
 const uint8_t USB_DeviceDescriptor[] = {
@@ -119,7 +119,7 @@ const uint8_t USB_ConfigDescriptor[] = {
 
 
 /* USB String Descriptor (optional) */
-const uint8_t USB_StringDescriptor[] = {
+uint8_t USB_StringDescriptor[] = {
 /* Index 0x00: LANGID Codes */
   0x04,                              /* bLength */
   USB_STRING_DESCRIPTOR_TYPE,        /* bDescriptorType */
@@ -147,7 +147,7 @@ const uint8_t USB_StringDescriptor[] = {
   'r',0,
   'k',0,
 /* Index 0x03: Serial Number */
-  (12*2 + 2),                        /* bLength (12 Char + Type + lenght) */
+  (16*2 + 2),                        /* bLength (12 Char + Type + lenght) */
   USB_STRING_DESCRIPTOR_TYPE,        /* bDescriptorType */
   '0',0,
   '0',0,
@@ -161,4 +161,55 @@ const uint8_t USB_StringDescriptor[] = {
   '0',0,
   '0',0,
   '0',0,
+  '0',0,
+  '0',0,
+  '0',0,
+  '0',0,
 };
+
+
+
+
+
+void usb_populate_serialno() {
+	int i, j, temp;
+	unsigned int result_table[5];
+
+	uint8_t* curr_stringdescriptor_ptr = USB_StringDescriptor
+			+ USB_StringDescriptor[0]; // Skip header
+	uint8_t iserial_stringlist_pos =
+			USB_DeviceDescriptor[USB_DEVICE_DESCRIPTOR_ISERIAL_POS];
+
+	// Jump to iSerialNumber (the start)
+	for (i = 0; i < iserial_stringlist_pos - 1; i++) {
+		curr_stringdescriptor_ptr += *curr_stringdescriptor_ptr;
+	}
+
+	if (*curr_stringdescriptor_ptr < 16 * 2) { // Verify the length to make sure we have enough room to write the SN
+		return;
+	}
+
+	curr_stringdescriptor_ptr++;
+	if (*curr_stringdescriptor_ptr != USB_STRING_DESCRIPTOR_TYPE) { // Verify this is a a string descriptor.
+		return;
+	}
+
+	iap_read_serial_number(result_table);
+	if (result_table[0] != IAP_CMD_SUCCESS) {
+		return; // Couldn't read serial number
+	}
+
+	curr_stringdescriptor_ptr++; // We are on the first string char.
+	for (i = 0; i < 4; i++) {
+		for (j = 0; j < sizeof(unsigned) * 2; j++) {
+			temp = (uint8_t) (result_table[1 + i] >> (4 * j)) & 0x0F;
+			if (temp < 10) {
+				*curr_stringdescriptor_ptr = '0' + temp;
+			} else {
+				*curr_stringdescriptor_ptr = 'A' + temp - 10;
+			}
+			curr_stringdescriptor_ptr += 2;
+		}
+	}
+}
+
