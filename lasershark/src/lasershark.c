@@ -52,7 +52,6 @@ void lasershark_init() {
 	GPIOSetDir(LASERSHARK_C_PORT, LASERSHARK_C_PIN, 1); // Output
 	GPIOSetDir(LASERSHARK_INTL_A_PORT, LASERSHARK_INTL_A_PIN, 1); // Output
 	GPIOSetDir(LASERSHARK_INTL_B_PORT, LASERSHARK_INTL_B_PIN, 0); // Input
-	GPIOSetValue(LASERSHARK_C_PORT, LASERSHARK_C_PIN, 0);
 
 	// Unlike the DAC output, these are not pulled down at start so we need to pull down these pins ASAP!
 	lasershark_set_interlock_a(0);
@@ -114,6 +113,7 @@ void lasershark_init() {
 		dac124s085_dac(lasershark_blankingbuffer);
 		lasershark_set_c(true);
 		GPIOToggleValue(LED_PORT, USR2_LED_BIT);
+		GPIOToggleValue(LED_PORT, USR1_LED_BIT);
 
 		while (GPIOGetValue(LASERSHARK_PGM_BUTTON_PORT,
 						LASERSHARK_PGM_BUTTON_PIN)) {
@@ -134,6 +134,7 @@ void lasershark_init() {
 		dac124s085_dac(lasershark_blankingbuffer);
 		lasershark_set_c(false);
 		GPIOToggleValue(LED_PORT, USR2_LED_BIT);
+		GPIOToggleValue(LED_PORT, USR1_LED_BIT);
 
 		while (GPIOGetValue(LASERSHARK_PGM_BUTTON_PORT,
 						LASERSHARK_PGM_BUTTON_PIN)) {
@@ -154,6 +155,7 @@ void lasershark_init() {
 		dac124s085_dac(lasershark_blankingbuffer);
 		lasershark_set_c(false);
 		GPIOToggleValue(LED_PORT, USR2_LED_BIT);
+		GPIOToggleValue(LED_PORT, USR1_LED_BIT);
 
 		while (GPIOGetValue(LASERSHARK_PGM_BUTTON_PORT,
 						LASERSHARK_PGM_BUTTON_PIN)) {
@@ -276,6 +278,13 @@ void TIMER32_1_IRQHandler(void) {
 	LPC_TMR32B1->IR = 1; /* clear interrupt flag */
 
 	if (!lasershark_output_enabled /*|| !lasershark_get_interlock_b()*/) {
+		// This is buffer sent when the system is off
+		lasershark_blankingbuffer[0] = DAC124S085_DAC_VAL_MIN; // A
+		lasershark_blankingbuffer[1] = DAC124S085_DAC_VAL_MIN; // B
+		lasershark_blankingbuffer[2] = DAC124S085_INPUT_REG_DATA_MASK
+				& DAC124S085_DAC_VAL_MID; // INTL_A, C, X
+		lasershark_blankingbuffer[3] = DAC124S085_DAC_VAL_MID; // Y
+
 		lasershark_set_interlock_a(false);
 		dac124s085_dac(lasershark_blankingbuffer);
 		lasershark_set_c(false);
