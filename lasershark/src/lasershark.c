@@ -47,6 +47,8 @@ void lasershark_init() {
 	lasershark_output_enabled = false;
 	lasershark_ringbuffer_head = 0;
 	lasershark_ringbuffer_tail = 0;
+	lasershark_ringbuffer_half_full_reporting = false;
+
 
 	// Set lasershark pins to be inputs/outputs as appropriate ASAP!
 	GPIOSetDir(LASERSHARK_C_PORT, LASERSHARK_C_PIN, 1); // Output
@@ -233,6 +235,36 @@ void lasershark_process_command() {
 	case LASERSHARK_CMD_GET_DAC_MAX:
 		temp = DAC124S085_DAC_VAL_MAX;
 		memcpy(IN1Packet + 2, &temp, sizeof(uint32_t));
+		break;
+	case LASERSHARK_CMD_GET_RINGBUFFER_SAMPLE_COUNT:
+		temp = LASERSHARK_RINGBUFFER_SAMPLES;
+		memcpy(IN1Packet + 2, &temp, sizeof(uint32_t));
+		break;
+	case LASERSHARK_CMD_GET_RINGBUFFER_EMPTY_SAMPLE_COUNT:
+		temp = (lasershark_ringbuffer_tail > lasershark_ringbuffer_head) ?
+				lasershark_ringbuffer_tail - lasershark_ringbuffer_head :
+				LASERSHARK_RINGBUFFER_SAMPLES - lasershark_ringbuffer_head + lasershark_ringbuffer_tail;
+		memcpy(IN1Packet + 2, &temp, sizeof(uint32_t));
+		break;
+	case LASERSHARK_CMD_SET_RINGBUFFER_HALF_FULL_REPORTING:
+		switch (OUT1Packet[1]) {
+		case LASERSHARK_CMD_RINGBUFFER_HALF_FULL_REPORTING_DISABLE: // Disable reporting
+			lasershark_ringbuffer_half_full_reporting = false;
+			break;
+		case LASERSHARK_CMD_RINGBUFFER_HALF_FULL_REPORTING_ENABLE: // Enable reporting
+			lasershark_ringbuffer_half_full_reporting = true;
+			break;
+		default:
+			IN1Packet[1] = LASERSHARK_CMD_FAIL;
+			break;
+		}
+		break;
+	case LASERSHARK_GMD_GET_RINGBUFFER_HALF_FULL_REPORTING:
+		if (lasershark_ringbuffer_half_full_reporting) {
+			IN1Packet[2] = LASERSHARK_CMD_RINGBUFFER_HALF_FULL_REPORTING_ENABLE;
+		} else {
+			IN1Packet[2] = LASERSHARK_CMD_RINGBUFFER_HALF_FULL_REPORTING_DISABLE;
+		}
 		break;
 	default:
 		IN1Packet[1] = LASERSHARK_CMD_UNKNOWN;

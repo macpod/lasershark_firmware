@@ -56,7 +56,17 @@ along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
 // Get max dac value
 #define LASERSHARK_CMD_GET_DAC_MAX 0x88
 
+// Get the number of samples the ring buffer is able to store
+#define LASERSHARK_CMD_GET_RINGBUFFER_SAMPLE_COUNT 0X89
 
+// Get the number of samples that are unfilled in the ring buffer
+#define LASERSHARK_CMD_GET_RINGBUFFER_EMPTY_SAMPLE_COUNT 0X8A
+
+// Enable reporting of the buffer status via ISO transfers back to host.
+#define LASERSHARK_CMD_SET_RINGBUFFER_HALF_FULL_REPORTING 0X8B
+#define LASERSHARK_GMD_GET_RINGBUFFER_HALF_FULL_REPORTING 0X8C
+#define LASERSHARK_CMD_RINGBUFFER_HALF_FULL_REPORTING_ENABLE 0x01
+#define LASERSHARK_CMD_RINGBUFFER_HALF_FULL_REPORTING_DISABLE 0x00
 
 
 #define LASERSHARK_X_DAC_REG DAC124S085_INPUT_REG_C
@@ -88,7 +98,6 @@ unsigned char IN1Packet[LASERSHARK_USB_CTRL_SIZE]; //User application buffer for
 int32_t lasershark_usb_data_packet_size;
 int32_t lasershark_usb_data_packet_samp_count;
 
-
 #define LASERSHARK_RINGBUFFER_SAMPLES 768
 #define LASERSHARK_ILDA_CHANNELS 4
 volatile uint16_t lasershark_ringbuffer[LASERSHARK_RINGBUFFER_SAMPLES][LASERSHARK_ILDA_CHANNELS];
@@ -96,6 +105,8 @@ volatile uint16_t lasershark_blankingbuffer[LASERSHARK_ILDA_CHANNELS];
 
 uint32_t lasershark_ringbuffer_head;
 uint32_t lasershark_ringbuffer_tail;
+bool lasershark_ringbuffer_half_full_reporting;
+
 
 #define LASERSHARK_ILDA_RATE_DEFAULT 1000
 uint32_t lasershark_ilda_rate_max;
