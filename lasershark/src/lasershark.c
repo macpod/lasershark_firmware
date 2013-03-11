@@ -241,9 +241,9 @@ void lasershark_process_command() {
 		memcpy(IN1Packet + 2, &temp, sizeof(uint32_t));
 		break;
 	case LASERSHARK_CMD_GET_RINGBUFFER_EMPTY_SAMPLE_COUNT:
-		temp = (lasershark_ringbuffer_tail > lasershark_ringbuffer_head) ?
-				lasershark_ringbuffer_tail - lasershark_ringbuffer_head :
-				LASERSHARK_RINGBUFFER_SAMPLES - lasershark_ringbuffer_head + lasershark_ringbuffer_tail;
+		temp = (lasershark_ringbuffer_head > lasershark_ringbuffer_tail) ?
+				lasershark_ringbuffer_head - lasershark_ringbuffer_tail :
+				LASERSHARK_RINGBUFFER_SAMPLES - lasershark_ringbuffer_tail + lasershark_ringbuffer_head;
 		memcpy(IN1Packet + 2, &temp, sizeof(uint32_t));
 		break;
 	case LASERSHARK_CMD_SET_RINGBUFFER_HALF_FULL_REPORTING:
