@@ -104,7 +104,7 @@
 #define USB_WAKEUP_EVENT    0
 #define USB_SOF_EVENT       1
 #define USB_ERROR_EVENT     0
-#define USB_EP_EVENT        0x13
+#define USB_EP_EVENT        0x1b
 #define USB_CONFIGURE_EVENT 1
 #define USB_INTERFACE_EVENT 0
 #define USB_FEATURE_EVENT   0

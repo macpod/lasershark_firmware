@@ -90,7 +90,8 @@ along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
 #define LASERSHARK_PGM_BUTTON_PIN 1
 
 #define LASERSHARK_USB_CTRL_SIZE 64
-#define LASERSHARK_USB_DATA_SIZE 512
+#define LASERSHARK_USB_DATA_BULK_SIZE 64
+#define LASERSHARK_USB_DATA_ISO_SIZE 512
 #define LASERSHARK_USB_SOF_RATE 1000
 unsigned char OUT1Packet[LASERSHARK_USB_CTRL_SIZE]; //User application buffer for receiving and holding OUT packets sent from the host
 unsigned char IN1Packet[LASERSHARK_USB_CTRL_SIZE]; //User application buffer for sending IN packets to the host
@@ -103,8 +104,8 @@ int32_t lasershark_usb_data_packet_samp_count;
 volatile uint16_t lasershark_ringbuffer[LASERSHARK_RINGBUFFER_SAMPLES][LASERSHARK_ILDA_CHANNELS];
 volatile uint16_t lasershark_blankingbuffer[LASERSHARK_ILDA_CHANNELS];
 
-uint32_t lasershark_ringbuffer_head;
-uint32_t lasershark_ringbuffer_tail;
+volatile uint32_t lasershark_ringbuffer_head;
+volatile uint32_t lasershark_ringbuffer_tail;
 bool lasershark_ringbuffer_half_full_reporting;
 
 
@@ -120,6 +121,8 @@ void lasershark_init();
 void lasershark_process_command();
 
 bool lasershark_set_ilda_rate(uint32_t ilda_rate);
+
+__inline uint32_t lasershark_get_empty_sample_count();
 
 __inline void lasershark_process_data(uint32_t cnt);
 

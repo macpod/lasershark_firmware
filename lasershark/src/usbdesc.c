@@ -52,8 +52,8 @@ const uint8_t USB_ConfigDescriptor[] = {
   USB_CONFIGURATION_DESCRIPTOR_TYPE, /* bDescriptorType */
   WBVAL(                             /* wTotalLength */
     1*USB_CONFIGUARTION_DESC_SIZE +
-    2*USB_INTERFACE_DESC_SIZE     +  /* interfaces */
-    3*USB_ENDPOINT_DESC_SIZE         /* endpoints */
+    3*USB_INTERFACE_DESC_SIZE     +  /* interfaces */
+    4*USB_ENDPOINT_DESC_SIZE         /* endpoints */
       ),
   0x02,                              /* bNumInterfaces */
   0x01,                              /* bConfigurationValue: 0x01 is used to select this configuration */
@@ -106,8 +106,27 @@ const uint8_t USB_ConfigDescriptor[] = {
   USB_ENDPOINT_DESCRIPTOR_TYPE,      /* bDescriptorType */
   USB_ENDPOINT_OUT(4),               /* bEndpointAddress */
   USB_ENDPOINT_TYPE_ISOCHRONOUS,            /* bmAttributes */
-  WBVAL(LASERSHARK_USB_DATA_SIZE),            /* wMaxPacketSize */
+  WBVAL(LASERSHARK_USB_DATA_ISO_SIZE),            /* wMaxPacketSize */
   0x01,                              /* bInterval: ignore for Bulk transfer */
+
+  /* Interface 1, Alternate Setting 1, Data class interface descriptor*/
+  USB_INTERFACE_DESC_SIZE,           /* bLength */
+  USB_INTERFACE_DESCRIPTOR_TYPE,     /* bDescriptorType */
+  1,                 				 /* bInterfaceNumber: Number of Interface */
+  0x01,                              /* bAlternateSetting: no alternate setting */
+  0x01,                              /* bNumEndpoints: one endpoint used */
+  0xFF,          					 /* bInterfaceClass: Data Interface Class */
+  0xFF,                              /* bInterfaceSubClass: no subclass available */
+  0x00,                              /* bInterfaceProtocol: no protocol used */
+  0x00,                              /* iInterface: */
+
+  /* Endpoint, EP3 Bulk Out */
+  USB_ENDPOINT_DESC_SIZE,            /* bLength */
+  USB_ENDPOINT_DESCRIPTOR_TYPE,      /* bDescriptorType */
+  USB_ENDPOINT_OUT(3),               /* bEndpointAddress */
+  USB_ENDPOINT_TYPE_BULK,            /* bmAttributes */
+  WBVAL(64),            			 /* wMaxPacketSize */
+  0x00,                              /* bInterval: ignore for Bulk transfer */
 
   /* Terminator */
   0                                  /* bLength */

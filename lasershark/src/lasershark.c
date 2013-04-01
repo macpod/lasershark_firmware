@@ -59,8 +59,8 @@ void lasershark_init() {
 	lasershark_set_interlock_a(0);
 	lasershark_set_c(0);
 
-	lasershark_usb_data_packet_size = LASERSHARK_USB_DATA_SIZE
-			- (LASERSHARK_USB_DATA_SIZE % (LASERSHARK_ILDA_CHANNELS
+	lasershark_usb_data_packet_size = LASERSHARK_USB_DATA_ISO_SIZE
+			- (LASERSHARK_USB_DATA_ISO_SIZE % (LASERSHARK_ILDA_CHANNELS
 					* sizeof(uint16_t)));
 	lasershark_usb_data_packet_samp_count = lasershark_usb_data_packet_size
 			/ (LASERSHARK_ILDA_CHANNELS * sizeof(uint16_t));
@@ -176,6 +176,7 @@ void lasershark_init() {
 
 	init_timer32(1, lasershark_core_duration);
 	lasershark_set_ilda_rate(LASERSHARK_ILDA_RATE_DEFAULT);
+	NVIC_SetPriority(TIMER_32_1_IRQn, 1);
 	enable_timer32(1);
 
 }
@@ -241,9 +242,7 @@ void lasershark_process_command() {
 		memcpy(IN1Packet + 2, &temp, sizeof(uint32_t));
 		break;
 	case LASERSHARK_CMD_GET_RINGBUFFER_EMPTY_SAMPLE_COUNT:
-		temp = (lasershark_ringbuffer_head > lasershark_ringbuffer_tail) ?
-				lasershark_ringbuffer_head - lasershark_ringbuffer_tail :
-				LASERSHARK_RINGBUFFER_SAMPLES - lasershark_ringbuffer_tail + lasershark_ringbuffer_head;
+		temp = lasershark_get_empty_sample_count();
 		memcpy(IN1Packet + 2, &temp, sizeof(uint32_t));
 		break;
 	case LASERSHARK_CMD_SET_RINGBUFFER_HALF_FULL_REPORTING:
@@ -286,6 +285,13 @@ bool lasershark_set_ilda_rate(uint32_t ilda_rate) {
 	return true;
 }
 
+__inline uint32_t lasershark_get_empty_sample_count()
+{
+	return ((lasershark_ringbuffer_head > lasershark_ringbuffer_tail) ?
+					lasershark_ringbuffer_head - lasershark_ringbuffer_tail :
+					LASERSHARK_RINGBUFFER_SAMPLES - lasershark_ringbuffer_tail + lasershark_ringbuffer_head);
+}
+
 __inline void lasershark_process_data(uint32_t cnt) {
 	uint32_t dat, n, cntmod = (cnt + 3) / 4;
 	uint32_t *pData;
@@ -308,6 +314,8 @@ __inline void lasershark_process_data(uint32_t cnt) {
 
 void TIMER32_1_IRQHandler(void) {
 	LPC_TMR32B1->IR = 1; /* clear interrupt flag */
+    uint32_t temp = (lasershark_ringbuffer_head + 1)
+					% LASERSHARK_RINGBUFFER_SAMPLES;
 
 	if (!lasershark_output_enabled /*|| !lasershark_get_interlock_b()*/) {
 		// This is buffer sent when the system is off
@@ -325,7 +333,7 @@ void TIMER32_1_IRQHandler(void) {
 
 	// If the head and tail are the same, don't play the sample, it can make the galvos/lasers lose sanity.
 	// This also has the desirable side effect of turning off the laser once all the buffer samples are used up (i.e. in the even USB comms stop).
-	if (lasershark_ringbuffer_head == lasershark_ringbuffer_tail) {
+	if (temp == lasershark_ringbuffer_tail) {
 		lasershark_set_interlock_a(false);
 		dac124s085_dac_chn_set(LASERSHARK_A_DAC_REG, DAC124S085_DAC_VAL_MIN,
 				false);
@@ -344,8 +352,6 @@ void TIMER32_1_IRQHandler(void) {
 			lasershark_ringbuffer[lasershark_ringbuffer_head][0]
 					& LASERSHARK_C_BITMASK);
 
-	lasershark_ringbuffer_head = (lasershark_ringbuffer_head + 1)
-			% LASERSHARK_RINGBUFFER_SAMPLES;
-
+	lasershark_ringbuffer_head = temp;
 }
 

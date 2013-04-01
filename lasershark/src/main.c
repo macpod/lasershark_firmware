@@ -111,6 +111,8 @@ int main(void) {
 
 	usb_populate_serialno(); // Populate the devices serial number
 	USB_Init(); // USB Initialization
+	// Make USB a lower priority than the timer used for output.
+	NVIC_SetPriority(USB_IRQn, 2);
 	USB_Connect(TRUE); // USB Connect
 
 #if (WATCHDOG_ENABLED)

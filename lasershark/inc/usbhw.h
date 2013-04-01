@@ -37,6 +37,7 @@
 /* USB Hardware Functions */
 extern void  USBIOClkConfig (void);
 void delay (uint32_t length );
+void WrCmdEP (uint32_t EPNum, uint32_t cmd);
 
 extern void  USB_Init       (void);
 extern void  USB_Connect    (uint32_t  con);

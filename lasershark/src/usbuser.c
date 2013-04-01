@@ -188,8 +188,30 @@ void USB_EndPoint2(uint32_t event) {
  *    Parameter:       event
  */
 void USB_EndPoint3(uint32_t event) {
+	uint32_t cnt;
 	switch (event) {
-	case USB_EVT_IN:
+	case USB_EVT_OUT:
+		while (1) {
+			if (LASERSHARK_USB_DATA_BULK_SIZE <= lasershark_get_empty_sample_count()) {
+				break;
+			}
+		}
+
+		LPC_USB->Ctrl = ((USB_ENDPOINT_OUT(3) & 0x0F) << 2) | CTRL_RD_EN; // enable read
+		// 3 clock cycles to fetch the packet length from RAM.
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		asm("nop");
+		
+
+		if ((cnt = LPC_USB->RxPLen) & PKT_DV) { // We have data...
+			cnt &= PKT_LNGTH_MASK; // Get length in bytes
+			lasershark_process_data(cnt);
+			LPC_USB->Ctrl = 0;
+		}
+		LPC_USB->Ctrl = 0; // Disable read mode.. do this if you ever want to see a USB packet again
+	    WrCmdEP(USB_ENDPOINT_OUT(3), CMD_CLR_BUF);
 		break;
 	}
 }
