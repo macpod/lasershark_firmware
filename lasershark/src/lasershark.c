@@ -245,25 +245,13 @@ void lasershark_process_command() {
 		temp = lasershark_get_empty_sample_count();
 		memcpy(IN1Packet + 2, &temp, sizeof(uint32_t));
 		break;
-	case LASERSHARK_CMD_SET_RINGBUFFER_HALF_FULL_REPORTING:
-		switch (OUT1Packet[1]) {
-		case LASERSHARK_CMD_RINGBUFFER_HALF_FULL_REPORTING_DISABLE: // Disable reporting
-			lasershark_ringbuffer_half_full_reporting = false;
-			break;
-		case LASERSHARK_CMD_RINGBUFFER_HALF_FULL_REPORTING_ENABLE: // Enable reporting
-			lasershark_ringbuffer_half_full_reporting = true;
-			break;
-		default:
-			IN1Packet[1] = LASERSHARK_CMD_FAIL;
-			break;
-		}
+	case LASERSHARK_CMD_GET_LASERSHARK_FW_MAJOR_VERSION:
+		temp = LASERSHARK_FW_MAJOR_VERSION;
+		memcpy(IN1Packet + 2, &temp, sizeof(uint32_t));
 		break;
-	case LASERSHARK_GMD_GET_RINGBUFFER_HALF_FULL_REPORTING:
-		if (lasershark_ringbuffer_half_full_reporting) {
-			IN1Packet[2] = LASERSHARK_CMD_RINGBUFFER_HALF_FULL_REPORTING_ENABLE;
-		} else {
-			IN1Packet[2] = LASERSHARK_CMD_RINGBUFFER_HALF_FULL_REPORTING_DISABLE;
-		}
+	case LASERSHARK_GMD_GET_LASERSHARK_FW_MINOR_VERSION:
+		temp = LASERSHARK_FW_MINOR_VERSION;
+		memcpy(IN1Packet + 2, &temp, sizeof(uint32_t));
 		break;
 	default:
 		IN1Packet[1] = LASERSHARK_CMD_UNKNOWN;
