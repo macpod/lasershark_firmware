@@ -9,4 +9,5 @@
 *.axf
 *.bin
 .svn*
+makefile
 
