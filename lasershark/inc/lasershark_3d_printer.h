@@ -1,3 +1,23 @@
+/*
+lasershark_3d_printer.h - Lasershark firmware component for 3d printers.
+Copyright (C) 2012 Jeffrey Nelson <nelsonjm@macpod.net>
+
+This file is part of Lasershark's Firmware.
+
+Lasershark is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or
+(at your option) any later version.
+
+Lasershark is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #ifndef LASERSHARK_3D_PRINTER_H_
 #define LASERSHARK_3D_PRINTER_H_
 #include <stdint.h>
@@ -35,24 +55,23 @@
 // CTS
 #define LASERSHARK_3D_PRINTER_STEPPER_1_STEP_PORT 0
 #define LASERSHARK_3D_PRINTER_STEPPER_1_STEP_PIN 7
-
 // TX
 #define LASERSHARK_3D_PRINTER_STEPPER_1_DIR_PORT 1
 #define LASERSHARK_3D_PRINTER_STEPPER_1_DIR_PIN 7
 
-
 // RX
 #define LASERSHARK_3D_PRINTER_STEPPER_2_STEP_PORT 1
 #define LASERSHARK_3D_PRINTER_STEPPER_2_STEP_PIN 6
-
 // RTS
 #define LASERSHARK_3D_PRINTER_STEPPER_2_DIR_PORT 1
 #define LASERSHARK_3D_PRINTER_STEPPER_2_DIR_PIN 5
 
+
+// The following pins do not have internal pullup resistors.
+// They must be pulled up with external resistors for this to function properly.
 // SDA
 #define LASERSHARK_3D_PRINTER_R1_PORT 0
 #define LASERSHARK_3D_PRINTER_R1_PIN 5
-
 // SCL
 #define LASERSHARK_3D_PRINTER_R2_PORT 0
 #define LASERSHARK_3D_PRINTER_R2_PIN 4

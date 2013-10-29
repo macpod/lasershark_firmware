@@ -181,7 +181,6 @@ void lasershark_init() {
 	enable_timer32(1);
 
 	lasershark_3dprinter_init();
-
 }
 
 

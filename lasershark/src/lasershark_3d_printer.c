@@ -1,54 +1,41 @@
+/*
+lasershark_3d_printer.c - Lasershark firmware component for 3d printers.
+Copyright (C) 2012 Jeffrey Nelson <nelsonjm@macpod.net>
+
+This file is part of Lasershark's Firmware.
+
+Lasershark is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or
+(at your option) any later version.
+
+Lasershark is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "lasershark_3d_printer.h"
 #include "lasershark.h"
 #include "gpio.h"
 #include "timer32.h"
 #include <string.h>
 
+
 static uint32_t lasershark_3d_printer_stepper_1_home_dir;
 static uint32_t lasershark_3d_printer_stepper_2_home_dir;
 static uint32_t lasershark_3d_printer_stepper_step_delay_ms;
 
-void lasershark_3dprinter_init() {
-	GPIOSetDir(LASERSHARK_3D_PRINTER_STEPPER_1_STEP_PORT,
-			LASERSHARK_3D_PRINTER_STEPPER_1_STEP_PIN, 1);
-	GPIOSetDir(LASERSHARK_3D_PRINTER_STEPPER_1_DIR_PORT,
-			LASERSHARK_3D_PRINTER_STEPPER_1_DIR_PIN, 1);
-
-	GPIOSetDir(LASERSHARK_3D_PRINTER_STEPPER_2_STEP_PORT,
-			LASERSHARK_3D_PRINTER_STEPPER_2_STEP_PIN, 1);
-	GPIOSetDir(LASERSHARK_3D_PRINTER_STEPPER_2_DIR_PORT,
-			LASERSHARK_3D_PRINTER_STEPPER_2_DIR_PIN, 1);
-
-	GPIOSetDir(LASERSHARK_3D_PRINTER_R1_PORT, LASERSHARK_3D_PRINTER_R1_PIN, 1);
-	GPIOSetDir(LASERSHARK_3D_PRINTER_R2_PORT, LASERSHARK_3D_PRINTER_R2_PIN, 1);
-
-	GPIOSetValue(LASERSHARK_3D_PRINTER_STEPPER_1_STEP_PORT,
-			LASERSHARK_3D_PRINTER_STEPPER_1_STEP_PIN, 0);
-	GPIOSetValue(LASERSHARK_3D_PRINTER_STEPPER_1_DIR_PORT,
-			LASERSHARK_3D_PRINTER_STEPPER_1_DIR_PIN, 0);
-
-	GPIOSetValue(LASERSHARK_3D_PRINTER_STEPPER_2_STEP_PORT,
-			LASERSHARK_3D_PRINTER_STEPPER_2_STEP_PIN, 0);
-	GPIOSetValue(LASERSHARK_3D_PRINTER_STEPPER_2_DIR_PORT,
-			LASERSHARK_3D_PRINTER_STEPPER_2_DIR_PIN, 0);
-
-	GPIOSetDir(LASERSHARK_3D_PRINTER_R1_PORT, LASERSHARK_3D_PRINTER_R1_PIN, 0);
-	GPIOSetDir(LASERSHARK_3D_PRINTER_R2_PORT, LASERSHARK_3D_PRINTER_R2_PIN, 0);
-
-
-	lasershark_3d_printer_stepper_1_home_dir = 0;
-	lasershark_3d_printer_stepper_2_home_dir = 0;
-	lasershark_3d_printer_stepper_step_delay_ms = 1;
-
-	init_timer32(0, 0);
-
-}
 
 
 static __INLINE uint8_t lasershark_3d_printer_get_r1_state() {
 	return GPIOGetValue( LASERSHARK_3D_PRINTER_R1_PORT, LASERSHARK_3D_PRINTER_R1_PIN);
 
 }
+
 
 static __INLINE uint8_t lasershark_3d_printer_get_r2_state() {
 	return GPIOGetValue( LASERSHARK_3D_PRINTER_R2_PORT, LASERSHARK_3D_PRINTER_R2_PIN);
@@ -112,10 +99,6 @@ static bool lasershark_3d_printer_stepper_home(uint32_t steppers)
 }
 
 
-
-
-
-
 static bool lasershark_3d_printer_set_stepper_1_home_dir(uint8_t dir) {
 	if (dir != 1 && dir != 0) {
 		return false;
@@ -125,6 +108,7 @@ static bool lasershark_3d_printer_set_stepper_1_home_dir(uint8_t dir) {
 	return true;
 }
 
+
 static bool lasershark_3d_printer_set_stepper_2_home_dir(uint8_t dir) {
 	if (dir != 1 && dir != 0) {
 		return false;
@@ -133,6 +117,7 @@ static bool lasershark_3d_printer_set_stepper_2_home_dir(uint8_t dir) {
 	lasershark_3d_printer_stepper_2_home_dir = dir;
 	return true;
 }
+
 
 // Returns 1 on failure, 0 otherwise.
 static bool laser_3d_printer_stepper_set_step_delay_ms_cmd(uint32_t ms) {
@@ -171,18 +156,18 @@ void lasershark_process_3d_printer_command() {
 		break;
 	case LASERSHARK_3D_PRINTER_CMD_STEPPER_2_STEP_TOWARDS_HOME:
 		memcpy(&temp, OUT1Packet + 1, sizeof(uint32_t));
-		if (!lasershark_3d_printer_stepper_step_helper(LASERSHARK_3D_PRINTER_STEPPER_1_DIR_PORT, LASERSHARK_3D_PRINTER_STEPPER_1_DIR_PIN,
-				LASERSHARK_3D_PRINTER_STEPPER_1_STEP_PORT, LASERSHARK_3D_PRINTER_STEPPER_1_STEP_PIN,
-				lasershark_3d_printer_stepper_1_home_dir, temp)) {
+		if (!lasershark_3d_printer_stepper_step_helper(LASERSHARK_3D_PRINTER_STEPPER_2_DIR_PORT, LASERSHARK_3D_PRINTER_STEPPER_2_DIR_PIN,
+				LASERSHARK_3D_PRINTER_STEPPER_2_STEP_PORT, LASERSHARK_3D_PRINTER_STEPPER_2_STEP_PIN,
+				lasershark_3d_printer_stepper_2_home_dir, temp)) {
 			IN1Packet[1] = LASERSHARK_CMD_FAIL;
 		}
 		break;
 	case LASERSHARK_3D_PRINTER_CMD_STEPPER_2_STEP_AWAY_FROM_HOME:
 		memcpy(&temp, OUT1Packet + 1, sizeof(uint32_t));
-		if (!lasershark_3d_printer_stepper_step_helper(LASERSHARK_3D_PRINTER_STEPPER_1_DIR_PORT, LASERSHARK_3D_PRINTER_STEPPER_1_DIR_PIN,
-				LASERSHARK_3D_PRINTER_STEPPER_1_STEP_PORT,
-				LASERSHARK_3D_PRINTER_STEPPER_1_STEP_PIN,
-				!lasershark_3d_printer_stepper_1_home_dir, temp)) {
+		if (!lasershark_3d_printer_stepper_step_helper(LASERSHARK_3D_PRINTER_STEPPER_2_DIR_PORT, LASERSHARK_3D_PRINTER_STEPPER_2_DIR_PIN,
+				LASERSHARK_3D_PRINTER_STEPPER_2_STEP_PORT,
+				LASERSHARK_3D_PRINTER_STEPPER_2_STEP_PIN,
+				!lasershark_3d_printer_stepper_2_home_dir, temp)) {
 			IN1Packet[1] = LASERSHARK_CMD_FAIL;
 		}
 		break;
@@ -223,3 +208,42 @@ void lasershark_process_3d_printer_command() {
 		break;
 	}
 }
+
+
+void lasershark_3dprinter_init() {
+	// Initialize timer 0  here (normal timer init function does stuff we don't want this to do)!
+    LPC_SYSCON->SYSAHBCLKCTRL |= (1<<9);
+
+
+	GPIOSetDir(LASERSHARK_3D_PRINTER_STEPPER_1_STEP_PORT,
+			LASERSHARK_3D_PRINTER_STEPPER_1_STEP_PIN, 1);
+	GPIOSetDir(LASERSHARK_3D_PRINTER_STEPPER_1_DIR_PORT,
+			LASERSHARK_3D_PRINTER_STEPPER_1_DIR_PIN, 1);
+
+	GPIOSetDir(LASERSHARK_3D_PRINTER_STEPPER_2_STEP_PORT,
+			LASERSHARK_3D_PRINTER_STEPPER_2_STEP_PIN, 1);
+	GPIOSetDir(LASERSHARK_3D_PRINTER_STEPPER_2_DIR_PORT,
+			LASERSHARK_3D_PRINTER_STEPPER_2_DIR_PIN, 1);
+
+
+	GPIOSetDir(LASERSHARK_3D_PRINTER_R1_PORT, LASERSHARK_3D_PRINTER_R1_PIN, 0);
+	GPIOSetDir(LASERSHARK_3D_PRINTER_R2_PORT, LASERSHARK_3D_PRINTER_R2_PIN, 0);
+
+
+	GPIOSetValue(LASERSHARK_3D_PRINTER_STEPPER_1_STEP_PORT,
+			LASERSHARK_3D_PRINTER_STEPPER_1_STEP_PIN, 0);
+	GPIOSetValue(LASERSHARK_3D_PRINTER_STEPPER_1_DIR_PORT,
+			LASERSHARK_3D_PRINTER_STEPPER_1_DIR_PIN, 0);
+
+	GPIOSetValue(LASERSHARK_3D_PRINTER_STEPPER_2_STEP_PORT,
+			LASERSHARK_3D_PRINTER_STEPPER_2_STEP_PIN, 0);
+	GPIOSetValue(LASERSHARK_3D_PRINTER_STEPPER_2_DIR_PORT,
+			LASERSHARK_3D_PRINTER_STEPPER_2_DIR_PIN, 0);
+
+
+
+	lasershark_3d_printer_stepper_1_home_dir = 0;
+	lasershark_3d_printer_stepper_2_home_dir = 0;
+	lasershark_3d_printer_stepper_step_delay_ms = 1;
+}
+
