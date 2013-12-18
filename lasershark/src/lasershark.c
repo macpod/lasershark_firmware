@@ -27,6 +27,9 @@
 #include "usbreg.h"
 #include "dac124s085.h"
 
+static bool lasershark_output_enabled;
+
+
 static __INLINE void lasershark_set_interlock_a(bool val)
 {
 	GPIOSetValue(LASERSHARK_INTL_A_PORT, LASERSHARK_INTL_A_PIN, val);
@@ -180,7 +183,15 @@ void lasershark_init() {
 	enable_timer32(1);
 }
 
+void lasershark_output_enable(bool enable)
+{
+	lasershark_output_enabled = enable;
+}
 
+bool lasershark_output_is_enabled()
+{
+	return lasershark_output_enabled;
+}
 
 void lasershark_process_command() {
 	uint32_t temp;

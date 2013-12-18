@@ -114,9 +114,12 @@ uint32_t lasershark_ilda_rate_max;
 uint32_t lasershark_curr_ilda_rate;
 uint32_t lasershark_core_duration;
 
-bool lasershark_output_enabled;
-
 void lasershark_init();
+
+void lasershark_output_enable(bool enable);
+
+bool lasershark_output_is_enabled();
+
 
 void lasershark_process_command();
 

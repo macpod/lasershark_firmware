@@ -20,22 +20,24 @@
  */
 
 #include "lasershark_uart_bridge.h"
-//#include "lasershark.h"
+#include "lasershark.h"
 #include "uart.h"
 #include <string.h>
+#include <stdbool.h>
 
 void lasershark_process_uart_bridge_command() {
 	uint32_t u32_temp;
 	uint8_t u8_temp;
+	//bool lasershark_output_was_enabled;
 
 	IN2Packet[0] = OUT2Packet[0]; // Put the command sent in the "IN" buffer
 	IN2Packet[1] = LASERSHARK_UB_CMD_SUCCESS; // Assume output will be success
 
-	//lasershark_output_enabled = false;
-	//lasershark_process_3d_printer_command();
-
-	// The command sent has already been put in the "IN" buffer
-	// The output is assumed to be a success report.
+	//lasershark_output_was_enabled = lasershark_output_is_enabled();
+	//if (lasershark_output_was_enabled) {
+	//	// Disable output
+	//	lasershark_output_enable(false);
+	//}
 
 	switch (OUT2Packet[0]) {
 	case LASERSHARK_UB_CMD_TX:
@@ -72,7 +74,10 @@ void lasershark_process_uart_bridge_command() {
 		break;
 	}
 
-	//lasershark_output_enabled = true;
+	//if (!lasershark_output_was_enabled) {
+	//	// Re-enable output.
+	//	lasershark_output_enable(true);
+	//}
 	return;
 
 }
