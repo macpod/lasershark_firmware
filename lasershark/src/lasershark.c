@@ -26,7 +26,6 @@
 #include "timer32.h"
 #include "usbreg.h"
 #include "dac124s085.h"
-#include "lasershark_3d_printer.h"
 
 static __INLINE void lasershark_set_interlock_a(bool val)
 {
@@ -179,8 +178,6 @@ void lasershark_init() {
 	lasershark_set_ilda_rate(LASERSHARK_ILDA_RATE_DEFAULT);
 	NVIC_SetPriority(TIMER_32_1_IRQn, 1);
 	enable_timer32(1);
-
-	lasershark_3dprinter_init();
 }
 
 
@@ -189,14 +186,6 @@ void lasershark_process_command() {
 	uint32_t temp;
 	IN1Packet[0] = OUT1Packet[0]; // Put the command sent in the "IN" buffer
 	IN1Packet[1] = LASERSHARK_CMD_SUCCESS; // Assume output will be success
-
-	if (OUT1Packet[0] >= LASERSHARK_3D_PRINTER_CMD_START_RANGE && OUT1Packet[0] <= LASERSHARK_3D_PRINTER_CMD_END_RANGE)
-	{
-		lasershark_output_enabled = false;
-		lasershark_process_3d_printer_command();
-		lasershark_output_enabled = true;
-		return;
-	}
 
 	switch (OUT1Packet[0]) {
 	case LASERSHARK_CMD_SET_OUTPUT: //Enable/Disable output

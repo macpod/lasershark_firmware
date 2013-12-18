@@ -26,6 +26,7 @@
 #include "usbcore.h"
 #include "usbuser.h"
 #include "lasershark.h"
+#include "lasershark_uart_bridge.h"
 #include "gpio.h"
 #include "config.h"
 #include "usbreg.h"
@@ -177,6 +178,11 @@ void USB_EndPoint1(uint32_t event) {
  */
 void USB_EndPoint2(uint32_t event) {
 	switch (event) {
+	case USB_EVT_OUT:
+		USB_ReadEP(USB_ENDPOINT_OUT(2), OUT2Packet);
+		lasershark_process_uart_bridge_command();
+		USB_WriteEP(USB_ENDPOINT_IN(2), IN2Packet, 64);
+		break;
 	case USB_EVT_IN:
 		break;
 	}

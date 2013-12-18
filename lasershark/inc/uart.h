@@ -6,11 +6,12 @@
  *
  *   History
  *   2008.08.21  ver 1.00    Preliminary version, first Release
+ *   2013.11.01	 ver 1.10	 Jeffrey Nelson - Added additional convenience functions
  *
 ******************************************************************************/
 #ifndef __UART_H 
 #define __UART_H
-
+#include <stdbool.h>
 
 #define RS485_ENABLED		0
 #define TX_INTERRUPT		0		/* 0 if TX uses polling, 1 interrupt driven. */
@@ -35,7 +36,7 @@
 #define LSR_TEMT	0x40
 #define LSR_RXFE	0x80
 
-#define BUFSIZE		0x40
+#define BUFSIZE		0x0 // Saved some ram for Lasershark haha.
 
 /* RS485 mode definition. */
 #define RS485_NMMEN		(0x1<<0)
@@ -45,9 +46,20 @@
 #define RS485_DCTRL		(0x1<<4)
 #define RS485_OINV		(0x1<<5)
 
+
 void UARTInit(uint32_t Baudrate);
-void UART_IRQHandler(void);
-void UARTSend(uint8_t *BufferPtr, uint32_t Length);
+
+// These two will probably be removed.. just don't want to delete them yet.
+//void UART_IRQHandler(void);
+//void UARTSend(uint8_t *BufferPtr, uint32_t Length);
+
+__inline bool uart_rx_ready();
+ uint8_t uart_rx_nonblock(uint8_t *byte_array, uint8_t byte_count);
+ uint8_t uart_tx_nonblock(uint8_t *byte_array, uint8_t byte_count);
+ void uart_rx_clear_fifo();
+
+
+
 
 #endif /* end __UART_H */
 /*****************************************************************************

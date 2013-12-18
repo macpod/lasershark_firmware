@@ -52,10 +52,10 @@ const uint8_t USB_ConfigDescriptor[] = {
   USB_CONFIGURATION_DESCRIPTOR_TYPE, /* bDescriptorType */
   WBVAL(                             /* wTotalLength */
     1*USB_CONFIGUARTION_DESC_SIZE +
-    3*USB_INTERFACE_DESC_SIZE     +  /* interfaces */
-    4*USB_ENDPOINT_DESC_SIZE         /* endpoints */
+    4*USB_INTERFACE_DESC_SIZE     +  /* interfaces */
+    6*USB_ENDPOINT_DESC_SIZE         /* endpoints */
       ),
-  0x02,                              /* bNumInterfaces */
+  0x03,                              /* bNumInterfaces */
   0x01,                              /* bConfigurationValue: 0x01 is used to select this configuration */
   0x00,                              /* iConfiguration: no string to describe this configuration */
   USB_CONFIG_BUS_POWERED /*|*/       /* bmAttributes */
@@ -127,6 +127,33 @@ const uint8_t USB_ConfigDescriptor[] = {
   USB_ENDPOINT_TYPE_BULK,            /* bmAttributes */
   WBVAL(64),            			 /* wMaxPacketSize */
   0x00,                              /* bInterval: ignore for Bulk transfer */
+
+  /* Interface 2, Alternate Setting 0 interface descriptor */
+    USB_INTERFACE_DESC_SIZE,           /* bLength */
+    USB_INTERFACE_DESCRIPTOR_TYPE,     /* bDescriptorType */
+    2,			                     /* bInterfaceNumber: Number of Interface */
+    0x00,                              /* bAlternateSetting: Alternate setting */
+    0x02,                              /* bNumEndpoints: Two endpoints used */
+    0xFF, 							 /* bInterfaceClass: Vendor specific */
+    0xFF,						         /* bInterfaceSubClass: Vendor specific */
+    0x00,                              /* bInterfaceProtocol: no protocol used */
+    0x00,                              /* iInterface: */
+
+    /* Endpoint, EP1 Bulk Out */
+    USB_ENDPOINT_DESC_SIZE,            /* bLength */
+    USB_ENDPOINT_DESCRIPTOR_TYPE,      /* bDescriptorType */
+    USB_ENDPOINT_OUT(2),               /* bEndpointAddress */
+    USB_ENDPOINT_TYPE_BULK,            /* bmAttributes */
+    WBVAL(64),            			 /* wMaxPacketSize */
+    0x00,                              /* bInterval: ignore for Bulk transfer */
+
+    /* Endpoint, EP1 Bulk In */
+    USB_ENDPOINT_DESC_SIZE,            /* bLength */
+    USB_ENDPOINT_DESCRIPTOR_TYPE,      /* bDescriptorType */
+    USB_ENDPOINT_IN(2),                /* bEndpointAddress */
+    USB_ENDPOINT_TYPE_BULK,            /* bmAttributes */
+    WBVAL(LASERSHARK_USB_CTRL_SIZE),            			 /* wMaxPacketSize */
+    0x00,                              /* bInterval: ignore for Bulk transfer */
 
   /* Terminator */
   0                                  /* bLength */

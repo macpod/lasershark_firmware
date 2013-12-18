@@ -6,6 +6,7 @@
  *
  *   History
  *   2008.08.21  ver 1.00    Preliminary version, first Release
+ *   2013.11.01         ver 1.10        Jeffrey Nelson - Added additional convenience functions
  *
 ******************************************************************************/
 #include "LPC13xx.h"
@@ -18,6 +19,9 @@ volatile uint32_t UARTStatus;
 volatile uint8_t  UARTTxEmpty = 1;
 volatile uint8_t  UARTBuffer[BUFSIZE];
 volatile uint32_t UARTCount = 0;
+
+#define NXP_UART_TX_FIFO_SIZE 16
+static volatile uint8_t nxp_tx_fifo_workaround_count = 0;
 
 /*****************************************************************************
 ** Function name:		UART_IRQHandler
@@ -140,14 +144,17 @@ void UARTInit(uint32_t baudrate)
 	regVal = LPC_UART->RBR;	/* Dump data from RX FIFO */
   }
  
+
+#if TX_INTERRUPT
   /* Enable the UART Interrupt */
   NVIC_EnableIRQ(UART_IRQn);
 
-#if TX_INTERRUPT
   LPC_UART->IER = IER_RBR | IER_THRE | IER_RLS;	/* Enable UART interrupt */
 #else
   LPC_UART->IER = IER_RBR | IER_RLS;	/* Enable UART interrupt */
 #endif
+
+  nxp_tx_fifo_workaround_count = NXP_UART_TX_FIFO_SIZE; //
   return;
 }
 
@@ -159,11 +166,11 @@ void UARTInit(uint32_t baudrate)
 **
 ** parameters:		buffer pointer, and data length
 ** Returned value:	None
-** 
+**
 *****************************************************************************/
 void UARTSend(uint8_t *BufferPtr, uint32_t Length)
 {
-  
+
   while ( Length != 0 )
   {
 	  /* THRE status, contain valid data */
@@ -181,6 +188,58 @@ void UARTSend(uint8_t *BufferPtr, uint32_t Length)
   }
   return;
 }
+
+__inline bool uart_rx_ready()
+{
+	return LPC_UART->LSR & LSR_RDR;
+}
+
+
+// Returns number of bytes actually read (if any).
+uint8_t uart_rx_nonblock(uint8_t *byte_array, uint8_t byte_count)
+{
+	uint8_t count = 0;
+	while (count < byte_count && (LPC_UART->LSR & LSR_RDR)) {
+		*byte_array = LPC_UART->RBR;
+		byte_array++;
+		count++;
+	}
+	return count;
+}
+
+/*
+ * Whoever developed the silicone for the UART FIFO screwed up.
+ * There should be a bit that marks if the FIFO isn't empty.
+ * Instead there's only a LSR_THRE bit that states when the FIFO is empty. Argh!
+ */
+uint8_t uart_tx_nonblock(uint8_t *byte_array, uint8_t byte_count)
+{
+	uint8_t count = 0;
+
+	if (LPC_UART->LSR & LSR_THRE) {
+		// The FIFO bit suggests the FIFO is empty, reset the FIFO counter.
+		nxp_tx_fifo_workaround_count = NXP_UART_TX_FIFO_SIZE;
+	}
+	while (count < byte_count && nxp_tx_fifo_workaround_count > 0) {
+		LPC_UART->THR = *byte_array;
+		byte_array++;
+		count++;
+	  }
+	nxp_tx_fifo_workaround_count -= count;
+	return count;
+}
+
+// Clears up to 16 bytes
+void uart_rx_clear_fifo()
+{
+	uint8_t tmp = 16;
+	uint8_t count = tmp;
+	while (count > 0 && (LPC_UART->LSR & LSR_RDR)) {
+		tmp = LPC_UART->RBR;
+		count--;
+	}
+}
+
 
 /******************************************************************************
 **                            End Of File

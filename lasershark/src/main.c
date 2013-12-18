@@ -34,6 +34,7 @@
 #include "usbdesc.h"
 #include "type.h"
 #include "lasershark.h"
+#include "lasershark_uart_bridge.h"
 
 // Variable to store CRP value in. Will be placed automatically
 // by the linker when "Enable Code Read Protect" selected.
@@ -106,6 +107,7 @@ int main(void) {
 
 	// Set initial state of lasershark ASAP!
 	lasershark_init();
+	lasershark_uart_bridge_init();
 
 	USBIOClkConfig();
 
