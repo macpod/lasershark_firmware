@@ -45,7 +45,7 @@ void lasershark_process_uart_bridge_command() {
 		IN2Packet[2] = u8_temp; // Return number of bytes copied.
 		break;
 	case LASERSHARK_UB_CMD_RX:
-		u8_temp = uart_rx_nonblock(IN2Packet + 3, OUT2Packet[2]);
+		u8_temp = uart_rx_nonblock(IN2Packet + 3, OUT2Packet[1]);
 		IN2Packet[2] = u8_temp; // Return number of bytes copied.
 		break;
 	case LASERSHARK_UB_CMD_RX_READY:
