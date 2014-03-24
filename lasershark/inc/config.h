@@ -36,6 +36,8 @@ How to use:
 #define USR1_LED_BIT 9		// Bit on port for led
 #define USR2_LED_BIT 10		// Bit on port for led
 
+// Set this to zero if you are debugging.
+#define WATCHDOG_ENABLED 1
 
 /*********************************************************************************
 **                            End Of File

@@ -29,6 +29,8 @@
 
 static bool lasershark_output_enabled;
 
+static bool lasershark_bulk_interrupt_retrigger;
+
 
 static __INLINE void lasershark_set_interlock_a(bool val)
 {
@@ -48,6 +50,7 @@ static __INLINE void lasershark_set_c(bool val)
 void lasershark_init() {
 	int i, j = j;
 	lasershark_output_enabled = false;
+	lasershark_bulk_interrupt_retrigger = false;
 	lasershark_ringbuffer_head = 0;
 	lasershark_ringbuffer_tail = 0;
 	lasershark_ringbuffer_half_full_reporting = false;
@@ -261,9 +264,11 @@ void lasershark_process_command() {
 		temp = LASERSHARK_FW_MAJOR_VERSION;
 		memcpy(IN1Packet + 2, &temp, sizeof(uint32_t));
 		break;
-	case LASERSHARK_GMD_GET_LASERSHARK_FW_MINOR_VERSION:
+	case LASERSHARK_CMD_GET_LASERSHARK_FW_MINOR_VERSION:
 		temp = LASERSHARK_FW_MINOR_VERSION;
 		memcpy(IN1Packet + 2, &temp, sizeof(uint32_t));
+		break;
+	case LASERSHARK_CMD_CLEAR_RINGBUFFER:
 		break;
 	default:
 		IN1Packet[1] = LASERSHARK_CMD_UNKNOWN;
@@ -292,6 +297,21 @@ __inline uint32_t lasershark_get_empty_sample_count()
 					LASERSHARK_RINGBUFFER_SAMPLES - lasershark_ringbuffer_tail + lasershark_ringbuffer_head);
 }
 
+__inline uint32_t lasershark_clear_ringbuffer()
+{
+	bool temp = lasershark_output_enabled;
+	lasershark_output_enabled = false;
+
+	// See if head and tail are the same. If so we don't have to do anything.
+	if (lasershark_ringbuffer_head != lasershark_ringbuffer_tail) {
+		// USB interrupt priority is 2, timer interrupt priority is 1. As such it should not be possible
+		// for the the head to be incremented to one after the tail.
+		lasershark_ringbuffer_head = lasershark_ringbuffer_tail;
+	}
+
+	lasershark_output_enabled = temp;
+}
+
 __inline void lasershark_process_data(uint32_t cnt) {
 	uint32_t dat, n, cntmod = (cnt + 3) / 4;
 	uint32_t *pData;
@@ -308,6 +328,21 @@ __inline void lasershark_process_data(uint32_t cnt) {
 					% LASERSHARK_RINGBUFFER_SAMPLES;
 		} else { // Even
 			pData[0] = dat;
+		}
+	}
+}
+
+void  lasershark_set_bulk_data_interrupt_needs_retrigger(void)
+{
+	lasershark_bulk_interrupt_retrigger = true;
+}
+
+void lasershark_handle_bulk_data_interrupt_retrigger(void)
+{
+	if (lasershark_bulk_interrupt_retrigger) {
+		if (LASERSHARK_USB_DATA_BULK_SIZE <= lasershark_get_empty_sample_count()) {
+			lasershark_bulk_interrupt_retrigger = false;
+			LPC_USB->DevIntSet = EP6_INT; // Physical EP 6 (Logical OUT EP 3). This is a write-only register. Don't OR-in value.
 		}
 	}
 }

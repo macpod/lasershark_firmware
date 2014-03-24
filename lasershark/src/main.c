@@ -26,6 +26,7 @@
 #include <NXP/crp.h>
 #include <stdbool.h>
 #include "config.h"
+#include "watchdog.h"
 #include "gpio.h"
 #include "usb.h"
 #include "usbcfg.h"
@@ -41,43 +42,6 @@
 // See crp.h header for more information
 __CRP const unsigned int CRP_WORD = CRP_NO_CRP;
 
-// Set this to zero if you are debugging.
-#define WATCHDOG_ENABLED 1
-
-#define WDEN (0x1<<0)
-#define WDRESET (0x1<<1)
-
-#if (WATCHDOG_ENABLED)
-void watchdog_feed() {
-	LPC_WDT->FEED = 0xAA;
-	LPC_WDT->FEED = 0x55;
-}
-
-void watchdog_init() {
-	LPC_SYSCON->SYSAHBCLKCTRL |= (1 << 15); // Power on WTD peripheral
-	//	LPC_SYSCON->CLKOUTCLKSEL = 0x02; // Use WDTOSC for CLKOUT pin
-
-	LPC_SYSCON->WDTOSCCTRL = 0x1 << 5 | 0xF; // FREQSEL = 1.4Mhz, 64 =  ~9.375kHz
-	LPC_SYSCON->PDRUNCFG &= ~(0x1 << 6); // Power WDTOSC
-
-	LPC_SYSCON->WDTCLKSEL = 0x02; // Use WDTOSC as the WTD clock source
-
-	LPC_SYSCON->WDTCLKUEN = 0x01; // Update clock source
-	// Write 0 then 1 to apply
-	LPC_SYSCON->WDTCLKUEN = 0x00;
-	LPC_SYSCON->WDTCLKUEN = 0x01;
-	while (!(LPC_SYSCON->WDTCLKUEN & 0x01))
-		; // Wait for update to occur.
-
-	LPC_SYSCON->WDTCLKDIV = 0x01; // Enabled WDTCLK and set it to divide by 1 (7.8KHz)
-
-	NVIC_EnableIRQ(WDT_IRQn);
-	LPC_WDT->TC = 256; // Delay = <276 (minimum of 256, max of 2^24)>*4 / 9.375khz(WDTCLK) =0.10922666666 s
-	LPC_WDT->MOD = WDEN | WDRESET; // Cause reset to occur when WDT hits.
-
-	watchdog_feed();
-}
-#endif
 
 int main(void) {
 	/* Basic chip initialization is taken care of in SystemInit() called
@@ -117,25 +81,18 @@ int main(void) {
 	NVIC_SetPriority(USB_IRQn, 2);
 	USB_Connect(TRUE); // USB Connect
 
-#if (WATCHDOG_ENABLED)
 	watchdog_init();
-#endif
 
 	while (!USB_Configuration) // wait until USB is configured
 	{
-#if (WATCHDOG_ENABLED)
-		watchdog_feed();
-#else
-		asm("nop");
-#endif
+		watchdog_feed_or_nop();
 	}
 
 	while (1) {
-#if (WATCHDOG_ENABLED)
-		watchdog_feed();
-#else
-		asm("nop");
-#endif
+		watchdog_feed_or_nop();
+		lasershark_handle_bulk_data_interrupt_retrigger();
 	}
+	// TODO handle usb disconnects better instead of resetting (i.e. for externally powered LaserSharks).
+
 	return 0;
 }

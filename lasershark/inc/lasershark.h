@@ -51,10 +51,6 @@ along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
 // Get max dac value
 #define LASERSHARK_CMD_GET_DAC_MAX 0x88
 
-// Get min dac value
-#define LASERSHARK_CMD_GET_DAC_MIN 0x87
-// Get max dac value
-#define LASERSHARK_CMD_GET_DAC_MAX 0x88
 
 // Get the number of samples the ring buffer is able to store
 #define LASERSHARK_CMD_GET_RINGBUFFER_SAMPLE_COUNT 0X89
@@ -64,10 +60,12 @@ along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
 
 // Version Info
 #define LASERSHARK_FW_MAJOR_VERSION 2
-#define LASERSHARK_FW_MINOR_VERSION 1
+#define LASERSHARK_FW_MINOR_VERSION 2
 #define LASERSHARK_CMD_GET_LASERSHARK_FW_MAJOR_VERSION 0X8B
-#define LASERSHARK_GMD_GET_LASERSHARK_FW_MINOR_VERSION 0X8C
+#define LASERSHARK_CMD_GET_LASERSHARK_FW_MINOR_VERSION 0X8C
 
+// Clears ring buffer
+#define LASERSHARK_CMD_CLEAR_RINGBUFFER 0x8D
 
 #define LASERSHARK_X_DAC_REG DAC124S085_INPUT_REG_C
 #define LASERSHARK_Y_DAC_REG DAC124S085_INPUT_REG_D
@@ -128,6 +126,10 @@ bool lasershark_set_ilda_rate(uint32_t ilda_rate);
 __inline uint32_t lasershark_get_empty_sample_count();
 
 __inline void lasershark_process_data(uint32_t cnt);
+
+void lasershark_set_bulk_data_interrupt_needs_retrigger();
+
+void lasershark_handle_bulk_data_interrupt_retrigger();
 
 void TIMER32_1_IRQHandler(void);
 

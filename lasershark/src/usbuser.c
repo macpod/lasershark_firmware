@@ -197,10 +197,10 @@ void USB_EndPoint3(uint32_t event) {
 	uint32_t cnt;
 	switch (event) {
 	case USB_EVT_OUT:
-		while (1) {
-			if (LASERSHARK_USB_DATA_BULK_SIZE <= lasershark_get_empty_sample_count()) {
-				break;
-			}
+		if (LASERSHARK_USB_DATA_BULK_SIZE > lasershark_get_empty_sample_count()) {
+			// We can't sit around here all day! Have the main thread loop trigger this when ready.
+			lasershark_set_bulk_data_interrupt_needs_retrigger();
+			return;
 		}
 
 		LPC_USB->Ctrl = ((USB_ENDPOINT_OUT(3) & 0x0F) << 2) | CTRL_RD_EN; // enable read

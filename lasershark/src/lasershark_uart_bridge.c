@@ -1,5 +1,5 @@
 /*
- lasershark_uart_bridge.h - Lasershark firmware component to allow for
+ lasershark_uart_bridge.c - Lasershark firmware component to allow for
  limited uart communication through lasershark.
  Copyright (C) 2012 Jeffrey Nelson <nelsonjm@macpod.net>
 
