@@ -47,7 +47,8 @@ static __INLINE void lasershark_set_c(bool val)
 	GPIOSetValue(LASERSHARK_C_PORT, LASERSHARK_C_PIN, val);
 }
 
-void lasershark_init() {
+void lasershark_init()
+{
 	int i, j = j;
 	lasershark_output_enabled = false;
 	lasershark_bulk_interrupt_retrigger = false;
@@ -196,7 +197,23 @@ bool lasershark_output_is_enabled()
 	return lasershark_output_enabled;
 }
 
-void lasershark_process_command() {
+void lasershark_clear_ringbuffer()
+{
+	bool temp = lasershark_output_enabled;
+	lasershark_output_enabled = false;
+
+	// See if head and tail are the same. If so we don't have to do anything.
+	if (lasershark_ringbuffer_head != lasershark_ringbuffer_tail) {
+		// USB interrupt priority is 2, timer interrupt priority is 1. As such it should not be possible
+		// for the the head to be incremented to one after the tail.
+		lasershark_ringbuffer_head = lasershark_ringbuffer_tail;
+	}
+
+	lasershark_output_enabled = temp;
+}
+
+void lasershark_process_command()
+{
 	uint32_t temp;
 	IN1Packet[0] = OUT1Packet[0]; // Put the command sent in the "IN" buffer
 	IN1Packet[1] = LASERSHARK_CMD_SUCCESS; // Assume output will be success
@@ -269,6 +286,7 @@ void lasershark_process_command() {
 		memcpy(IN1Packet + 2, &temp, sizeof(uint32_t));
 		break;
 	case LASERSHARK_CMD_CLEAR_RINGBUFFER:
+		lasershark_clear_ringbuffer();
 		break;
 	default:
 		IN1Packet[1] = LASERSHARK_CMD_UNKNOWN;
@@ -277,7 +295,8 @@ void lasershark_process_command() {
 
 }
 
-bool lasershark_set_ilda_rate(uint32_t ilda_rate) {
+bool lasershark_set_ilda_rate(uint32_t ilda_rate)
+{
 	if (ilda_rate > lasershark_ilda_rate_max || ilda_rate == 0) {
 		return false;
 	}
@@ -297,22 +316,8 @@ __inline uint32_t lasershark_get_empty_sample_count()
 					LASERSHARK_RINGBUFFER_SAMPLES - lasershark_ringbuffer_tail + lasershark_ringbuffer_head);
 }
 
-__inline uint32_t lasershark_clear_ringbuffer()
+__inline void lasershark_process_data(uint32_t cnt)
 {
-	bool temp = lasershark_output_enabled;
-	lasershark_output_enabled = false;
-
-	// See if head and tail are the same. If so we don't have to do anything.
-	if (lasershark_ringbuffer_head != lasershark_ringbuffer_tail) {
-		// USB interrupt priority is 2, timer interrupt priority is 1. As such it should not be possible
-		// for the the head to be incremented to one after the tail.
-		lasershark_ringbuffer_head = lasershark_ringbuffer_tail;
-	}
-
-	lasershark_output_enabled = temp;
-}
-
-__inline void lasershark_process_data(uint32_t cnt) {
 	uint32_t dat, n, cntmod = (cnt + 3) / 4;
 	uint32_t *pData;
 
@@ -347,7 +352,8 @@ void lasershark_handle_bulk_data_interrupt_retrigger(void)
 	}
 }
 
-void TIMER32_1_IRQHandler(void) {
+void TIMER32_1_IRQHandler(void)
+{
 	LPC_TMR32B1->IR = 1; /* clear interrupt flag */
     uint32_t temp = (lasershark_ringbuffer_head + 1)
 					% LASERSHARK_RINGBUFFER_SAMPLES;
