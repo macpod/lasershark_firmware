@@ -43,8 +43,8 @@ along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
 
 // Get number of ilda elements per sample
 #define LASERSHARK_CMD_GET_SAMP_ELEMENT_COUNT 0X85
-// Get number of ilda samples that can be transmitter per packet.
-#define LASERSHARK_CMD_GET_PACKET_SAMP_COUNT 0x86
+// Get number of ilda samples that can be transmitter per iso packet.
+#define LASERSHARK_CMD_GET_ISO_PACKET_SAMP_COUNT 0x86
 
 // Get min dac value
 #define LASERSHARK_CMD_GET_DAC_MIN 0x87
@@ -66,6 +66,9 @@ along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
 
 // Clears ring buffer
 #define LASERSHARK_CMD_CLEAR_RINGBUFFER 0x8D
+
+// Get number of ilda samples that can be transmitter per bulk packet.
+#define LASERSHARK_CMD_GET_BULK_PACKET_SAMP_COUNT 0x8E
 
 #define LASERSHARK_X_DAC_REG DAC124S085_INPUT_REG_C
 #define LASERSHARK_Y_DAC_REG DAC124S085_INPUT_REG_D
@@ -94,18 +97,17 @@ along with Lasershark. If not, see <http://www.gnu.org/licenses/>.
 unsigned char OUT1Packet[LASERSHARK_USB_CTRL_SIZE]; //User application buffer for receiving and holding OUT packets sent from the host
 unsigned char IN1Packet[LASERSHARK_USB_CTRL_SIZE]; //User application buffer for sending IN packets to the host
 
-int32_t lasershark_usb_data_packet_size;
-int32_t lasershark_usb_data_packet_samp_count;
 
 #define LASERSHARK_RINGBUFFER_SAMPLES 768
 #define LASERSHARK_ILDA_CHANNELS 4
+#define LASERSHARK_SAMPLE_SIZE 8
+#define LASERSHARK_USB_DATA_ISO_PACKET_SAMPLE_COUNT 64
+#define LASERSHARK_USB_DATA_BULK_PACKET_SAMPLE_COUNT 8
 volatile uint16_t lasershark_ringbuffer[LASERSHARK_RINGBUFFER_SAMPLES][LASERSHARK_ILDA_CHANNELS];
 volatile uint16_t lasershark_blankingbuffer[LASERSHARK_ILDA_CHANNELS];
 
 volatile uint32_t lasershark_ringbuffer_head;
 volatile uint32_t lasershark_ringbuffer_tail;
-bool lasershark_ringbuffer_half_full_reporting;
-
 
 #define LASERSHARK_ILDA_RATE_DEFAULT 1000
 uint32_t lasershark_ilda_rate_max;

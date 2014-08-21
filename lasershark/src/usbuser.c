@@ -197,8 +197,8 @@ void USB_EndPoint3(uint32_t event) {
 	uint32_t cnt;
 	switch (event) {
 	case USB_EVT_OUT:
-		if (LASERSHARK_USB_DATA_BULK_SIZE > lasershark_get_empty_sample_count()) {
-			// We can't sit around here all day! Have the main thread loop trigger this when ready.
+		if (LASERSHARK_USB_DATA_BULK_PACKET_SAMPLE_COUNT+1 > lasershark_get_empty_sample_count()) {
+			//We can't sit around here all day! Have the main thread loop trigger this when ready.
 			lasershark_set_bulk_data_interrupt_needs_retrigger();
 			return;
 		}

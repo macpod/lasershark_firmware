@@ -31,6 +31,9 @@ static bool lasershark_output_enabled;
 
 static bool lasershark_bulk_interrupt_retrigger;
 
+static bool lasershark_ringbuffer_clear;
+
+
 
 static __INLINE void lasershark_set_interlock_a(bool val)
 {
@@ -54,7 +57,7 @@ void lasershark_init()
 	lasershark_bulk_interrupt_retrigger = false;
 	lasershark_ringbuffer_head = 0;
 	lasershark_ringbuffer_tail = 0;
-	lasershark_ringbuffer_half_full_reporting = false;
+	lasershark_ringbuffer_clear = false;
 
 
 	// Set lasershark pins to be inputs/outputs as appropriate ASAP!
@@ -66,16 +69,10 @@ void lasershark_init()
 	lasershark_set_interlock_a(0);
 	lasershark_set_c(0);
 
-	lasershark_usb_data_packet_size = LASERSHARK_USB_DATA_ISO_SIZE
-			- (LASERSHARK_USB_DATA_ISO_SIZE % (LASERSHARK_ILDA_CHANNELS
-					* sizeof(uint16_t)));
-	lasershark_usb_data_packet_samp_count = lasershark_usb_data_packet_size
-			/ (LASERSHARK_ILDA_CHANNELS * sizeof(uint16_t));
-
 	SSPInit();
 
 	lasershark_ilda_rate_max = LASERSHARK_USB_SOF_RATE
-			* lasershark_usb_data_packet_samp_count;
+			* LASERSHARK_USB_DATA_ISO_PACKET_SAMPLE_COUNT;
 
 	// This is buffer sent when the system is off
 	lasershark_blankingbuffer[0] = DAC124S085_DAC_VAL_MIN; // A
@@ -199,17 +196,7 @@ bool lasershark_output_is_enabled()
 
 void lasershark_clear_ringbuffer()
 {
-	bool temp = lasershark_output_enabled;
-	lasershark_output_enabled = false;
-
-	// See if head and tail are the same. If so we don't have to do anything.
-	if (lasershark_ringbuffer_head != lasershark_ringbuffer_tail) {
-		// USB interrupt priority is 2, timer interrupt priority is 1. As such it should not be possible
-		// for the the head to be incremented to one after the tail.
-		lasershark_ringbuffer_head = lasershark_ringbuffer_tail;
-	}
-
-	lasershark_output_enabled = temp;
+	lasershark_ringbuffer_clear = true;
 }
 
 void lasershark_process_command()
@@ -257,8 +244,14 @@ void lasershark_process_command()
 		temp = LASERSHARK_ILDA_CHANNELS;
 		memcpy(IN1Packet + 2, &temp, sizeof(uint32_t));
 		break;
-	case LASERSHARK_CMD_GET_PACKET_SAMP_COUNT:
-		memcpy(IN1Packet + 2, &lasershark_usb_data_packet_samp_count,
+	case LASERSHARK_CMD_GET_ISO_PACKET_SAMP_COUNT:
+		temp = LASERSHARK_USB_DATA_ISO_PACKET_SAMPLE_COUNT;
+		memcpy(IN1Packet + 2, &temp,
+				sizeof(uint32_t));
+		break;
+	case LASERSHARK_CMD_GET_BULK_PACKET_SAMP_COUNT:
+		temp = LASERSHARK_USB_DATA_BULK_PACKET_SAMPLE_COUNT;
+		memcpy(IN1Packet + 2, &temp,
 				sizeof(uint32_t));
 		break;
 	case LASERSHARK_CMD_GET_DAC_MIN:
@@ -327,7 +320,7 @@ __inline void lasershark_process_data(uint32_t cnt)
 		dat = LPC_USB->RxData;
 		pData
 				= ((uint32_t __attribute__((packed)) *) lasershark_ringbuffer[lasershark_ringbuffer_tail]);
-		if (n % 2) { // Odd
+		if (n & 0x1) { // Odd
 			pData[1] = dat;
 			lasershark_ringbuffer_tail = (lasershark_ringbuffer_tail + 1)
 					% LASERSHARK_RINGBUFFER_SAMPLES;
@@ -354,9 +347,9 @@ void lasershark_handle_bulk_data_interrupt_retrigger(void)
 
 void TIMER32_1_IRQHandler(void)
 {
+	int32_t temp;
+
 	LPC_TMR32B1->IR = 1; /* clear interrupt flag */
-    uint32_t temp = (lasershark_ringbuffer_head + 1)
-					% LASERSHARK_RINGBUFFER_SAMPLES;
 
 	if (!lasershark_output_enabled /*|| !lasershark_get_interlock_b()*/) {
 		// This is buffer sent when the system is off
@@ -371,6 +364,15 @@ void TIMER32_1_IRQHandler(void)
 		lasershark_set_c(false);
 		return;
 	}
+
+	if (lasershark_ringbuffer_clear) {
+		lasershark_ringbuffer_head = 0;
+		lasershark_ringbuffer_tail = 1;
+		lasershark_ringbuffer_clear = false;
+	}
+
+	temp = (lasershark_ringbuffer_head + 1)
+					% LASERSHARK_RINGBUFFER_SAMPLES;
 
 	// If the head and tail are the same, don't play the sample, it can make the galvos/lasers lose sanity.
 	// This also has the desirable side effect of turning off the laser once all the buffer samples are used up (i.e. in the even USB comms stop).
