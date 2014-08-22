@@ -47,9 +47,28 @@ static __INLINE void lasershark_set_c(bool val)
 	GPIOSetValue(LASERSHARK_C_PORT, LASERSHARK_C_PIN, val);
 }
 
+static __INLINE void blank_display()
+{
+	lasershark_set_interlock_a(false);
+	dac124s085_dac(lasershark_blankingbuffer);
+	lasershark_set_c(false);
+}
+
+static void blank_buffer()
+{
+	int i;
+	for (i = 0; i < LASERSHARK_RINGBUFFER_SAMPLES; i++) {
+		lasershark_ringbuffer[i][0] = DAC124S085_DAC_VAL_MIN; // A
+		lasershark_ringbuffer[i][1] = DAC124S085_DAC_VAL_MIN; // B
+		lasershark_ringbuffer[i][2] = DAC124S085_INPUT_REG_DATA_MASK
+				& DAC124S085_DAC_VAL_MID; // INTL_A, C, X
+		lasershark_ringbuffer[i][3] = DAC124S085_DAC_VAL_MID; // Y
+	}
+}
+
 void lasershark_init()
 {
-	int i, j = j;
+	int i = i, j = j;
 	lasershark_output_enabled = false;
 	lasershark_bulk_interrupt_retrigger = false;
 	lasershark_ringbuffer_head = 0;
@@ -75,14 +94,10 @@ void lasershark_init()
 	lasershark_blankingbuffer[2] = DAC124S085_INPUT_REG_DATA_MASK
 			& DAC124S085_DAC_VAL_MID; // INTL_A, C, X
 	lasershark_blankingbuffer[3] = DAC124S085_DAC_VAL_MID; // Y
+	blank_display();
 
-	for (i = 0; i < LASERSHARK_RINGBUFFER_SAMPLES; i++) {
-		lasershark_ringbuffer[i][0] = DAC124S085_DAC_VAL_MIN; // A
-		lasershark_ringbuffer[i][1] = DAC124S085_DAC_VAL_MIN; // B
-		lasershark_ringbuffer[i][2] = DAC124S085_INPUT_REG_DATA_MASK
-				& DAC124S085_DAC_VAL_MID; // INTL_A, C, X
-		lasershark_ringbuffer[i][3] = DAC124S085_DAC_VAL_MID; // Y
-	}
+	// Clear out all the samples.
+	blank_buffer();
 
 	// dummy code to blink LEDS.. woo
 #if (0)
@@ -192,6 +207,8 @@ bool lasershark_output_is_enabled()
 void lasershark_clear_ringbuffer()
 {
 	enable_timer32(0);
+	blank_display();
+	blank_buffer();
 	lasershark_ringbuffer_head = 0;
 	lasershark_ringbuffer_tail = 1;
 	enable_timer32(1);
@@ -261,7 +278,7 @@ void lasershark_process_command()
 		memcpy(IN1Packet + 2, &temp, sizeof(uint32_t));
 		break;
 	case LASERSHARK_CMD_GET_RINGBUFFER_SAMPLE_COUNT:
-		temp = LASERSHARK_RINGBUFFER_SAMPLES;
+		temp = LASERSHARK_RINGBUFFER_SAMPLES - 1;
 		memcpy(IN1Packet + 2, &temp, sizeof(uint32_t));
 		break;
 	case LASERSHARK_CMD_GET_RINGBUFFER_EMPTY_SAMPLE_COUNT:
@@ -350,16 +367,7 @@ void TIMER32_1_IRQHandler(void)
 	LPC_TMR32B1->IR = 1; /* clear interrupt flag */
 
 	if (!lasershark_output_enabled /*|| !lasershark_get_interlock_b()*/) {
-		// This is buffer sent when the system is off
-		lasershark_blankingbuffer[0] = DAC124S085_DAC_VAL_MIN; // A
-		lasershark_blankingbuffer[1] = DAC124S085_DAC_VAL_MIN; // B
-		lasershark_blankingbuffer[2] = DAC124S085_INPUT_REG_DATA_MASK
-				& DAC124S085_DAC_VAL_MID; // INTL_A, C, X
-		lasershark_blankingbuffer[3] = DAC124S085_DAC_VAL_MID; // Y
-
-		lasershark_set_interlock_a(false);
-		dac124s085_dac(lasershark_blankingbuffer);
-		lasershark_set_c(false);
+		blank_display();
 		return;
 	}
 
@@ -375,7 +383,6 @@ void TIMER32_1_IRQHandler(void)
 		dac124s085_dac_chn_set(LASERSHARK_B_DAC_REG, DAC124S085_DAC_VAL_MIN,
 				true);
 		lasershark_set_c(false);
-
 		return;
 	}
 

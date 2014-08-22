@@ -98,7 +98,7 @@ unsigned char OUT1Packet[LASERSHARK_USB_CTRL_SIZE]; //User application buffer fo
 unsigned char IN1Packet[LASERSHARK_USB_CTRL_SIZE]; //User application buffer for sending IN packets to the host
 
 
-#define LASERSHARK_RINGBUFFER_SAMPLES 768
+#define LASERSHARK_RINGBUFFER_SAMPLES 769
 #define LASERSHARK_ILDA_CHANNELS 4
 #define LASERSHARK_SAMPLE_SIZE 8
 #define LASERSHARK_USB_DATA_ISO_PACKET_SAMPLE_COUNT 64
