@@ -53,7 +53,7 @@ void lasershark_init()
 	lasershark_output_enabled = false;
 	lasershark_bulk_interrupt_retrigger = false;
 	lasershark_ringbuffer_head = 0;
-	lasershark_ringbuffer_tail = 0;
+	lasershark_ringbuffer_tail = 1;
 
 	// Set lasershark pins to be inputs/outputs as appropriate ASAP!
 	GPIOSetDir(LASERSHARK_C_PORT, LASERSHARK_C_PIN, 1); // Output
@@ -193,7 +193,7 @@ void lasershark_clear_ringbuffer()
 {
 	enable_timer32(0);
 	lasershark_ringbuffer_head = 0;
-	lasershark_ringbuffer_tail = 0;
+	lasershark_ringbuffer_tail = 1;
 	enable_timer32(1);
 }
 
