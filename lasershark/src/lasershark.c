@@ -31,9 +31,6 @@ static bool lasershark_output_enabled;
 
 static bool lasershark_bulk_interrupt_retrigger;
 
-static bool lasershark_ringbuffer_clear;
-
-
 
 static __INLINE void lasershark_set_interlock_a(bool val)
 {
@@ -57,8 +54,6 @@ void lasershark_init()
 	lasershark_bulk_interrupt_retrigger = false;
 	lasershark_ringbuffer_head = 0;
 	lasershark_ringbuffer_tail = 0;
-	lasershark_ringbuffer_clear = false;
-
 
 	// Set lasershark pins to be inputs/outputs as appropriate ASAP!
 	GPIOSetDir(LASERSHARK_C_PORT, LASERSHARK_C_PIN, 1); // Output
@@ -196,7 +191,10 @@ bool lasershark_output_is_enabled()
 
 void lasershark_clear_ringbuffer()
 {
-	lasershark_ringbuffer_clear = true;
+	enable_timer32(0);
+	lasershark_ringbuffer_head = 0;
+	lasershark_ringbuffer_tail = 0;
+	enable_timer32(1);
 }
 
 void lasershark_process_command()
@@ -363,12 +361,6 @@ void TIMER32_1_IRQHandler(void)
 		dac124s085_dac(lasershark_blankingbuffer);
 		lasershark_set_c(false);
 		return;
-	}
-
-	if (lasershark_ringbuffer_clear) {
-		lasershark_ringbuffer_head = 0;
-		lasershark_ringbuffer_tail = 1;
-		lasershark_ringbuffer_clear = false;
 	}
 
 	temp = (lasershark_ringbuffer_head + 1)
